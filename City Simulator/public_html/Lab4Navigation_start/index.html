@@ -1,0 +1,237 @@
+<html>
+    <head>
+        <link rel="icon" type="image/x-icon" href="./favicon.png">
+
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            precision mediump float;
+
+            attribute vec4 vPosition;
+            attribute vec4 vNormal;
+            attribute vec4 vColor;
+            attribute vec2 vTexCoord;
+
+            uniform vec4 uLight_position; // assumed to be in eye coordinates. 
+            uniform mat4 uProjection;
+            uniform mat4 uModel_view;
+
+            // output values that will be interpreted per-fragment
+            varying  vec3 fN;
+            varying  vec3 fE;
+            varying  vec3 fL;
+            varying vec4 color;
+            varying vec2 texCoord;
+            varying float yval;
+
+            void main()
+            {
+            color = vColor;
+            texCoord = vTexCoord;
+            yval = vPosition.y;
+
+
+            fN = normalize( uModel_view*vNormal ).xyz;
+            fE = -(uModel_view*vPosition).xyz;
+            fL = uLight_position.xyz - (uModel_view * vPosition).xyz;
+
+            gl_Position = uProjection * uModel_view * vPosition;
+            }
+
+
+        </script>
+
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+
+            // per-fragment interpolated values from the vertex shader
+            varying vec3 fN;
+            varying vec3 fL;
+            varying vec3 fE;
+            varying vec4 color;
+            varying vec2 texCoord;
+            varying float yval;
+
+            // incoming uniform values
+            uniform vec4  uColor;
+            uniform vec4  uLight_position;
+            uniform vec4  uAmbient_product, uDiffuse_product, uSpecular_product;
+            uniform float uShininess;
+            uniform sampler2D uTexture;
+            uniform float uColorMode;
+
+
+            void main()
+            {
+            vec4 myColor;// = texture2D(uTexture, texCoord);
+
+            vec4 c0 = vec4(0.0, 0.0, 1.0, 1.0);
+            vec4 c1 = vec4(0.6, 0.6, 0.2, 1.0);
+            vec4 c2 = vec4(0.0, 1.0, 0.0, 1.1);
+            vec4 c3 = vec4(1.0, 0.5, 0.2, 1.0);
+            vec4 c4 = vec4(1.0, 1.0, 1.0, 1.0);
+
+            float h0 = -1.0;
+            float h1 = 0.05;
+            float h2 = 0.4;
+            float h3 = 0.7;
+            float h4 = 1.0;
+
+            vec4 hColor = color;
+            if(yval>h0) {
+            hColor = mix(c0,c1,smoothstep(h0,h2,yval));
+            }
+            if(yval>h1) {
+            hColor = mix(c1,c2,smoothstep(h1,h2,yval));
+            }
+            if(yval>h3) {
+            hColor = mix(c2,c3,smoothstep(h3,h4,yval));
+            }
+
+
+            // Normalize the input lighting vectors
+            vec3 N = normalize(fN);
+            vec3 E = normalize(fE);
+            vec3 L = normalize(fL);
+
+            vec3 H = normalize( L + E );
+
+            if(uColorMode < 1.0){
+            myColor = color;
+            } else if(uColorMode<2.0){
+            myColor = uColor;
+            } else if(uColorMode<3.0){
+            myColor = texture2D(uTexture, texCoord);
+            } else if(uColorMode<4.0){
+            myColor = hColor;
+            }
+
+            vec4 ambient = uAmbient_product*myColor;
+
+            float diffDot = max(dot(L, N), 0.0);
+            vec4 diffuse = diffDot*uDiffuse_product*myColor;
+
+            float specDot = pow(max(dot(N, H), 0.0), uShininess);
+            vec4 specular = specDot*uSpecular_product*myColor;
+
+            // discard the specular highlight if the light's behind the vertex
+            if( dot(L, N) < 0.0 ) {
+            specular = vec4(0.0, 0.0, 0.0, 1.0);
+            }
+
+            gl_FragColor  = ambient + diffuse + specular;
+
+            gl_FragColor.a = 1.0;
+            }
+        </script>
+
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+        <script type="text/javascript" src="../Common/initShaders.js"></script>
+        <script type="text/javascript" src="eventHandlers.js"></script> 
+        <script type="text/javascript" src="../Common/MV.js"></script>
+        <script type="text/javascript" src="../Common/MatrixStack.js"></script>
+        <script type="text/javascript" src="../textures/Checkerboard.js"></script>
+        <script type="text/javascript" src="../textures/Greyscale.js"></script>
+        <script type="text/javascript" src="../textures/ImageTexture.js"></script>
+
+        <script type="text/javascript" src="geometry/Cube.js"></script>
+        <script type="text/javascript" src="geometry/Cone.js"></script>
+        <script type="text/javascript" src="geometry/Cylinder.js"></script>
+        <script type="text/javascript" src="geometry/Disk.js"></script>
+        <script type="text/javascript" src="geometry/Sphere.js"></script>
+        <script type="text/javascript" src="geometry/Pyramid.js"></script>
+        <script type="text/javascript" src="geometry/Robot.js"></script>
+        <script type="text/javascript" src="geometry/Market.js"></script>
+        <script type="text/javascript" src="geometry/Office.js"></script>
+        <script type="text/javascript" src="geometry/Factory.js"></script>
+        <script type="text/javascript" src="geometry/Roof.js"></script>
+        <script type="text/javascript" src="geometry/Ground.js"></script>
+        <script type="text/javascript" src="geometry/Apartment.js"></script>
+        <script type="text/javascript" src="geometry/Park.js"></script>
+        <script type="text/javascript" src="geometry/Hospital.js"></script>
+        <script type="text/javascript" src="geometry/Axis.js"></script>
+        <script type="text/javascript" src="geometry/Road.js"></script>
+        <script type="text/javascript" src="geometry/Frustum.js"></script>
+        <script type="text/javascript" src="geometry/Skybox.js"></script>
+        <script type="text/javascript" src="geometry/City.js"></script>
+        <script type="text/javascript" src="geometry/Citizens.js"></script>
+        <script type="text/javascript" src="geometry/Person.js"></script>
+
+        <script type="text/javascript" src="geometry/CityMap.js"></script>
+
+
+        <script type="text/javascript" src="geometry/Shapes.js"></script>
+        <script type="text/javascript" src="Lighting.js"></script>
+        <script type="text/javascript" src="Camera.js"></script>
+        <script type="text/javascript" src="render_scene.js"></script>
+
+    </head>
+    <body>
+
+        <h2> City Simulator</h2>
+        
+        <p>This program generates a small city with 6 buildings randomly along a road with citizens that fulfill their needs by traveling to different locations.</p>
+        <p>You can decide how many citizens you would like in the city below. You can also change the speed at which the city runs. A description of each person can be scrummed through using the "scrum" button.</p>
+        <p>Watch out! People can die if they're not careful with their stats!</p>
+        
+        <br/><br/>
+        
+        <p>Created By: D'Angelo Guiton</p>
+        <p> & Dakota Madden-Fong</p>
+        
+        <table>
+            <tr>
+                <td>
+                    <canvas id="gl-canvas" width="1024" height="800" oncontextmenu="return false;">   
+                        Oops ... your browser doesn't support the HTML5 canvas element
+                    </canvas>
+
+
+                </td>
+                <td >
+                    <div style = "background-color: LightGray">
+                        <p> Keyboard Controls:</p>
+                        <ul>
+                            <li>[r] ........ reset parameters</li> 
+                            <li>[q/a] ........ move forward/backward</li> 
+                            <li>[w/e] ........ turn left/right</li> 
+                            <li>[s/d] ........ turn up/down</li> 
+                            <li>[x/c] ........ roll left/right</li> 
+                        </ul>
+                        <p> Mouse Controls:</p>
+                        <ul>
+                            <li>[Right Mouse drag] ... pan up/down/left/right</li> 
+                            <li>[Middle Mouse drag] .. zoom in/out</li> 
+                            <li>[Middle Mouse wheel] . zoom in/out</li> 
+                            <li>[Left Mouse drag] .... tumble about origin</li> 
+                        </ul> </div>
+                    <div id="Size"><b>Change City Size</b> </div>
+                    <!--                    <div id="mouseAction"><b>Action:</b> </div>
+                                        <div id="mouseState"><b>Mouse State:</b></div>  -->
+
+
+
+                    <button id= "1Button">1</button>
+                    <button id= "5Button">5</button>
+                    <button id= "25Button">25</button>
+                    <button id= "50Button">50</button>
+
+                    <br/><br/>
+
+                    <div id="personState"><b>Person to String</b></div> 
+                    <button id= "viewButton">scrum</button> 
+                    
+                    <br/><br/>
+                    
+                    <select id="speedChoice">
+                        <option value="0">Snail</option>
+                        <option value="1">Turtle</option>
+                        <option value="2">African Swallow</option>
+                        <option value="3">Cheetah</option>
+                        <option value="4">Light</option>
+                        <!-- TO DO:  ADD OTHER SHAPES -->
+                    </select>
+
+                </td> </tr>
+        </table>
+    </body>
+</html>
